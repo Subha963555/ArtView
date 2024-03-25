@@ -170,32 +170,48 @@ div#sendMessageIcon {
     <!-- Your JavaScript code -->
         </script>
     <!-- Your JavaScript code -->
-    <script>
+   <script src="/socket.io/socket.io.js"></script>
+ <script>
         document.addEventListener("DOMContentLoaded", function() {
+            const chatMessages = document.getElementById("chatMessages");
+            const chatInput = document.getElementById("chat-input");
+            const sendMessageIcon = document.getElementById("sendMessageIcon");
             const chatbotContainer = document.getElementById("chatbotContainer");
             const closeButton = document.getElementById("closeButton");
-            const sendMessageIcon = document.getElementById("sendMessageIcon");
-            const chatInput = document.getElementById("chat-input");
-            const chatMessages = document.getElementById("chatMessages");
 
-            document.getElementById("openChatIcon").addEventListener("click", function() {
-                chatbotContainer.style.display = "block";
+            // Chat application WebSocket connection
+            const socketChat = new WebSocket("ws://localhost:3000/chat");
+
+            // Handle WebSocket message event for chat application
+            socketChat.addEventListener("message", function(event) {
+                handleMessage(event.data);
             });
 
-            closeButton.addEventListener("click", function() {
-                chatbotContainer.style.display = "none";
-            });
-
-            sendMessageIcon.addEventListener("click", sendMessage);
-
-            function sendMessage() {
+            // Send message when send button is clicked for chat application
+            sendMessageIcon.addEventListener("click", function() {
                 const message = chatInput.value.trim();
                 if (message !== "") {
                     appendMessage("user", message);
                     chatInput.value = "";
+                    socketChat.send(message); // Send message via WebSocket for chat application
+                }
+            });
+
+            // Handle different types of messages
+            function handleMessage(message) {
+                if (typeof message === 'string') {
+                    appendMessage("user", message); // If it's a string, directly append it
+                } else {
+                    // If it's a Blob object, read it as text and then append
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        appendMessage("user", reader.result);
+                    };
+                    reader.readAsText(message);
                 }
             }
 
+            // Append message to chat messages area
             function appendMessage(sender, message) {
                 const messageElement = document.createElement("div");
                 messageElement.classList.add(sender + "-message");
@@ -203,7 +219,18 @@ div#sendMessageIcon {
                 chatMessages.appendChild(messageElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
+
+            // Open chatbot when chat icon is clicked
+            document.getElementById("openChatIcon").addEventListener("click", function() {
+                chatbotContainer.style.display = "block";
+            });
+
+            // Close chatbot when close button is clicked
+            closeButton.addEventListener("click", function() {
+                chatbotContainer.style.display = "none";
+            });
         });
     </script>
+
 </body>
 </html>
